@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  correct-cpython:
+    build:
+      context: .
+      args:
+        - IMAGE_NAME=${CPYTHON_IMAGE_NAME}
+        - IMAGE_VERSION=${CPYTHON_IMAGE_VERSION}
+    image: lycantropos/correct-cpython:0.0.0-alpha
+    volumes:
+      - ./correct:/opt/correct/correct
+      - ./pytest.ini:/opt/correct/pytest.ini
+      - ./README.md:/opt/correct/README.md
+      - ./requirements-tests.txt:/opt/correct/requirements-tests.txt
+      - ./requirements.txt:/opt/correct/requirements.txt
+      - ./setup.py:/opt/correct/setup.py
+      - ./tests:/opt/correct/tests
+    entrypoint: pytest
