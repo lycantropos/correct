@@ -1,3 +1,3 @@
-from correct._core.hints import GenericAlias as _GenericAlias
+from correct._core.hints import SpecialGenericAlias as _SpecialGenericAlias
 
-GenericAlias = _GenericAlias
+SpecialGenericAlias = _SpecialGenericAlias

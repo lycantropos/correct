@@ -1,3 +1,4 @@
+import sys
 import typing
 from itertools import repeat
 
@@ -5,30 +6,47 @@ from hypothesis import strategies
 from hypothesis.strategies import SearchStrategy
 
 from correct.hints import Annotation
-from tests.utils import GenericAlias
+from tests.utils import SpecialGenericAlias
 
-plain_generic_aliases = strategies.sampled_from(
+special_generic_aliases = strategies.sampled_from(
         [candidate
          for candidate in vars(typing).values()
-         if (isinstance(candidate, GenericAlias)
-             and hasattr(candidate, '__parameters__'))]
+         if isinstance(candidate, SpecialGenericAlias)]
 )
 
 
 def nest_annotations(
         base: SearchStrategy[Annotation]
 ) -> SearchStrategy[Annotation]:
-    return plain_generic_aliases.flatmap(
+    return special_generic_aliases.flatmap(
             lambda alias: strategies.builds(
                     alias.__getitem__,
-                    strategies.tuples(*repeat(base, len(alias.__parameters__)))
+                    strategies.tuples(
+                            *repeat(
+                                    base,
+                                    special_generic_alias_to_parameters_count(
+                                            alias
+                                    )
+                            )
+                    )
             )
-            if alias.__parameters__
+            if special_generic_alias_to_parameters_count(alias)
             else base | strategies.just(alias)
     )
 
 
+if sys.version_info >= (3, 9):
+    def special_generic_alias_to_parameters_count(
+            value: SpecialGenericAlias
+    ) -> int:
+        return value._nparams
+else:
+    def special_generic_alias_to_parameters_count(
+            value: SpecialGenericAlias
+    ) -> int:
+        return len(value.__parameters__)
+
 annotations = strategies.recursive(
-        strategies.from_type(type) | plain_generic_aliases,
+        strategies.from_type(type) | special_generic_aliases,
         nest_annotations
 )
