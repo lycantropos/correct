@@ -12,7 +12,8 @@ else:
     def to_arguments(annotation: Annotation) -> t.Tuple[Annotation, ...]:
         if isinstance(annotation, GenericAlias):
             result = annotation.__args__
-            if (to_origin(annotation) is abc.Callable
+            if (result
+                    and to_origin(annotation) is abc.Callable
                     and result[0] is not Ellipsis):
                 result = (list(result[:-1]), result[-1])
             return result

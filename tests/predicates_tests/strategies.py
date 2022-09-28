@@ -5,14 +5,13 @@ from hypothesis import strategies
 from hypothesis.strategies import SearchStrategy
 
 from correct.hints import Annotation
-from tests.utils import (GenericAlias,
-                         VariadicGenericAlias)
+from tests.utils import GenericAlias
 
 plain_generic_aliases = strategies.sampled_from(
         [candidate
          for candidate in vars(typing).values()
          if (isinstance(candidate, GenericAlias)
-             and not isinstance(candidate, VariadicGenericAlias))]
+             and hasattr(candidate, '__parameters__'))]
 )
 
 

@@ -1,5 +1,3 @@
-from correct._core.hints import (GenericAlias as _GenericAlias,
-                                 VariadicGenericAlias as _VariadicGenericAlias)
+from correct._core.hints import GenericAlias as _GenericAlias
 
 GenericAlias = _GenericAlias
-VariadicGenericAlias = _VariadicGenericAlias
