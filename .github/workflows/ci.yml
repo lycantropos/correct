@@ -76,7 +76,7 @@ jobs:
       - name: 'Upload coverage'
         uses: codecov/codecov-action@v2.1.0
         with:
-          name: ${{ matrix.platform.os matrix.python_version-matrix.platform.python_arhitecture }}
+          name: ${{ matrix.platform.os }} ${{ matrix.python_version }}-${{ matrix.platform.python_arhitecture }}
           fail_ci_if_error: false
         continue-on-error: true
 
