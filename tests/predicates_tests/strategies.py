@@ -50,3 +50,7 @@ annotations = strategies.recursive(
         strategies.from_type(type) | special_generic_aliases,
         nest_annotations
 )
+annotations |= strategies.builds(typing.Union.__getitem__,
+                                 (strategies.lists(annotations,
+                                                   min_size=1)
+                                  .map(tuple)))
