@@ -91,8 +91,55 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                 return issubclass(left_origin, right)
     elif not (left_arguments and right_arguments):
         return issubclass(left_origin, right_origin)
+    elif left_origin is tuple:
+        if right_origin is tuple:
+            if len(left_arguments) == 2 and left_arguments[1] is Ellipsis:
+                left_argument = left_arguments[0]
+                if (len(right_arguments) == 2
+                        and right_arguments[1] is Ellipsis):
+                    return is_subtype(left_argument, right_arguments[0])
+                else:
+                    return all(is_subtype(left_argument, right_argument)
+                               for right_argument in right_arguments)
+            elif len(right_arguments) == 2 and right_arguments[1] is Ellipsis:
+                right_argument = right_arguments[0]
+                return all(is_subtype(left_argument, right_argument)
+                           for left_argument in left_arguments)
+            else:
+                return all(map(is_subtype, left_arguments, right_arguments))
+        elif _is_generic_alias(right):
+            if not issubclass(left_origin, right_origin):
+                return False
+            right_parameters_variance = _generic_alias_to_variance(right)
+            assert len(right_parameters_variance) == 1, right
+            assert (
+                    len(right_arguments) == len(right_parameters_variance)
+            ), right
+            right_argument, = right_arguments
+            if len(left_arguments) == 2 and left_arguments[1] is Ellipsis:
+                left_argument = left_arguments[0]
+                return is_subtype(left_argument, right_argument)
+            else:
+                return all(is_subtype(left_argument, right_argument)
+                           for left_argument in left_arguments)
     elif _is_generic_alias(left):
-        if _is_generic_alias(right):
+        if right_origin is tuple:
+            if not issubclass(left_origin, right_origin):
+                return False
+            left_parameters_variance = _generic_alias_to_variance(left)
+            assert len(left_parameters_variance) == 1, left
+            if not left_parameters_variance:
+                return True
+            left_arguments = left_arguments
+            assert len(left_arguments) == len(left_parameters_variance), left
+            left_argument, = left_arguments
+            if len(right_arguments) == 2 and right_arguments[1] is Ellipsis:
+                right_argument = right_arguments[0]
+                return is_subtype(left_argument, right_argument)
+            else:
+                return all(is_subtype(left_argument, right_argument)
+                           for right_argument in right_arguments)
+        elif _is_generic_alias(right):
             if (inspect.isabstract(left_origin)
                     and inspect.isabstract(right_origin)):
                 if right_origin not in left_origin.mro():
@@ -166,53 +213,6 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                 left_yield_annotation = left_arguments[0]
                 right_argument, = right_arguments
                 return is_subtype(left_yield_annotation, right_argument)
-        elif right_origin is tuple:
-            if not issubclass(left_origin, right_origin):
-                return False
-            left_parameters_variance = _generic_alias_to_variance(left)
-            assert len(left_parameters_variance) == 1, left
-            if not left_parameters_variance:
-                return True
-            left_arguments = left_arguments
-            assert len(left_arguments) == len(left_parameters_variance), left
-            left_argument, = left_arguments
-            if len(right_arguments) == 2 and right_arguments[1] is Ellipsis:
-                right_argument = right_arguments[0]
-                return is_subtype(left_argument, right_argument)
-            else:
-                return all(is_subtype(left_argument, right_argument)
-                           for right_argument in right_arguments)
-    elif left_origin is tuple:
-        if _is_generic_alias(right):
-            if not issubclass(left_origin, right_origin):
-                return False
-            right_parameters_variance = _generic_alias_to_variance(right)
-            assert len(right_parameters_variance) == 1, right
-            assert (
-                    len(right_arguments) == len(right_parameters_variance)
-            ), right
-            right_argument, = right_arguments
-            if len(left_arguments) == 2 and left_arguments[1] is Ellipsis:
-                left_argument = left_arguments[0]
-                return is_subtype(left_argument, right_argument)
-            else:
-                return all(is_subtype(left_argument, right_argument)
-                           for left_argument in left_arguments)
-        elif right_origin is tuple:
-            if len(left_arguments) == 2 and left_arguments[1] is Ellipsis:
-                left_argument = left_arguments[0]
-                if (len(right_arguments) == 2
-                        and right_arguments[1] is Ellipsis):
-                    return is_subtype(left_argument, right_arguments[0])
-                else:
-                    return all(is_subtype(left_argument, right_argument)
-                               for right_argument in right_arguments)
-            elif len(right_arguments) == 2 and right_arguments[1] is Ellipsis:
-                right_argument = right_arguments[0]
-                return all(is_subtype(left_argument, right_argument)
-                           for left_argument in left_arguments)
-            else:
-                return all(map(is_subtype, left_arguments, right_arguments))
     raise TypeError('Unsupported types: '
                     f'"{type_repr(left)}", "{type_repr(right)}".')
 
