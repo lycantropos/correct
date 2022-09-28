@@ -236,7 +236,7 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
             elif left_origin is abc.ItemsView:
                 assert len(left_parameters_variance) == 2, left
                 assert len(right_parameters_variance) == 1, right
-                left_item_annotation = t.Tuple[left_arguments]
+                left_item_annotation: Annotation = t.Tuple[left_arguments]
                 right_argument, = right_arguments
                 return is_subtype(left_item_annotation, right_argument)
             elif left_origin is abc.Coroutine or left_origin is abc.Generator:
