@@ -1,4 +1,5 @@
 import inspect
+import sys
 import typing as t
 from collections import (Counter,
                          abc)
@@ -11,6 +12,11 @@ from .utils import (to_arguments,
                     type_repr,
                     unpack_type_var)
 from .variance import Variance
+
+if sys.version_info >= (3, 8):
+    Protocol = t.Protocol
+else:
+    from typing_extensions import Protocol
 
 
 def _generic_alias_to_variance(value: GenericAlias) -> t.Tuple[Variance, ...]:
@@ -255,5 +261,5 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
 
 
 def is_protocol(value: type,
-                _protocol_meta: t.Type = type(t.Protocol)) -> bool:
+                _protocol_meta: t.Type = type(Protocol)) -> bool:
     return isinstance(value, _protocol_meta)
