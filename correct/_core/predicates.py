@@ -143,28 +143,23 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
     else:
         assert _is_generic_alias(left), left
         assert _is_generic_alias(right), right
-        left_parameters_variance = (_generic_alias_to_variance(left)
-                                    or ((Variance.COVARIANT,)
-                                        * len(left_arguments)))
-        right_parameters_variance = (_generic_alias_to_variance(right)
-                                     or ((Variance.COVARIANT,)
-                                         * len(right_arguments)))
-        assert all(
-                (left_variance is right_variance
-                 or left_variance is Variance.INVARIANT)
-                for left_variance, right_variance in zip(
-                        left_parameters_variance,
-                        right_parameters_variance
-                )
-        ), (left, right)
-        assert len(left_arguments) == len(left_parameters_variance), left
-        assert (
-                len(right_arguments) == len(right_parameters_variance)
-        ), right
-        if len(left_parameters_variance) == len(right_parameters_variance):
+        if left_origin is Counter:
+            assert len(left_arguments) == 1, left
+            left_arguments += (int,)
+        if len(left_arguments) == len(right_arguments):
+            right_parameters_variance = tuple(
+                    (Variance.CONTRAVARIANT
+                     if argument.__contravariant__
+                     else (Variance.COVARIANT
+                           if argument.__covariant__
+                           else Variance.INVARIANT))
+                    if isinstance(argument, t.TypeVar)
+                    else Variance.INVARIANT
+                    for argument in right_arguments
+            )
             return all(
                     (is_subtype(left_argument, right_argument)
-                     and is_subtype(left_argument, right_argument))
+                     and is_subtype(right_argument, left_argument))
                     if right_variance is Variance.INVARIANT
                     else (is_subtype(left_argument, right_argument)
                           if right_variance is Variance.COVARIANT
@@ -175,25 +170,10 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
             )
         elif issubclass(left_origin, abc.Mapping):
             if len(left_arguments) == 2:
-                assert len(right_parameters_variance) == 1, right
+                assert len(right_arguments) == 1, right
                 left_key_annotation = left_arguments[0]
                 right_argument, = right_arguments
                 return is_subtype(left_key_annotation, right_argument)
-            elif left_origin is Counter:
-                assert len(left_arguments) == 1, left
-                assert len(right_arguments) == 2, right
-                left_arguments += (int,)
-                return all(
-                        (is_subtype(left_argument, right_argument)
-                         and is_subtype(left_argument, right_argument))
-                        if right_variance is Variance.INVARIANT
-                        else (is_subtype(left_argument, right_argument)
-                              if right_variance is Variance.COVARIANT
-                              else is_subtype(right_argument, left_argument))
-                        for left_argument, right_argument, right_variance
-                        in zip(left_arguments, right_arguments,
-                               right_parameters_variance)
-                )
         elif left_origin is abc.ItemsView:
             assert len(left_arguments) == 2, left
             assert len(right_arguments) == 1, right
