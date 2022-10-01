@@ -5,13 +5,18 @@ from itertools import repeat
 from hypothesis import strategies
 from hypothesis.strategies import SearchStrategy
 
+from correct._core.utils import to_origin
 from correct.hints import Annotation
 from tests.utils import SpecialGenericAlias
 
+special_generic_aliases_values = [
+    candidate
+    for candidate in vars(typing).values()
+    if (isinstance(candidate, SpecialGenericAlias)
+        and candidate is not typing.Callable)
+]
 special_generic_aliases = strategies.sampled_from(
-        [candidate
-         for candidate in vars(typing).values()
-         if isinstance(candidate, SpecialGenericAlias)]
+        special_generic_aliases_values
 )
 
 
@@ -54,3 +59,17 @@ annotations |= strategies.builds(typing.Union.__getitem__,
                                  (strategies.lists(annotations,
                                                    min_size=1)
                                   .map(tuple)))
+special_generic_aliases_origins_values = {
+    to_origin(alias) for alias in special_generic_aliases_values
+}
+plain_annotations = strategies.recursive(
+        strategies.from_type(type).filter(
+                lambda type_:
+                type_ not in special_generic_aliases_origins_values
+        ),
+        nest_annotations
+)
+plain_annotations |= strategies.builds(typing.Union.__getitem__,
+                                       (strategies.lists(plain_annotations,
+                                                         min_size=1)
+                                        .map(tuple)))
