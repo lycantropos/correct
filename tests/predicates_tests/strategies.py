@@ -36,7 +36,7 @@ def nest_annotations(
                     )
             )
             if special_generic_alias_to_parameters_count(alias)
-            else base | strategies.just(alias)
+            else base
     )
 
 
