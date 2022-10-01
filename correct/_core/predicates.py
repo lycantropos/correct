@@ -141,11 +141,13 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
             return all(is_subtype(left_argument, right_argument)
                        for right_argument in right_arguments)
     else:
+        assert _is_generic_alias(left), left
+        assert _is_generic_alias(right), right
         left_parameters_variance = (_generic_alias_to_variance(left)
-                                    or ((Variance.INVARIANT,)
+                                    or ((Variance.COVARIANT,)
                                         * len(left_arguments)))
         right_parameters_variance = (_generic_alias_to_variance(right)
-                                     or ((Variance.INVARIANT,)
+                                     or ((Variance.COVARIANT,)
                                          * len(right_arguments)))
         assert all(
                 (left_variance is right_variance
