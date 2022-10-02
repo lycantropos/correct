@@ -60,7 +60,7 @@ def _(value: t.TypeVar) -> str:
         arguments.append('contravariant=True')
     if value.__covariant__:
         arguments.append('covariant=True')
-    return f'{type(value).__qualname__}({", ".join(arguments)})'
+    return f'{annotation_repr(type(value))}({", ".join(arguments)})'
 
 
 def type_var_to_variance(value: t.TypeVar) -> Variance:
