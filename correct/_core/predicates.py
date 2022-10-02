@@ -107,29 +107,24 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                                         and issubclass(right_origin, left))))
     elif left_origin is t.Union:
         if right_origin is t.Union:
-            left_arguments_set, right_arguments_set = (set(left_arguments),
-                                                       set(right_arguments))
-            common_arguments = left_arguments_set & right_arguments_set
-            left_arguments_set.difference_update(common_arguments)
-            right_arguments_set.difference_update(common_arguments)
             return (
                 (left_variance is Variance.INVARIANT
                  and all(any((is_subtype(left_argument, right_argument)
                               and is_subtype(right_argument, left_argument))
-                             for right_argument in right_arguments_set)
-                         for left_argument in left_arguments_set))
+                             for right_argument in right_arguments)
+                         for left_argument in left_arguments))
                 if right_variance is Variance.INVARIANT
                 else (
                     (left_variance is not Variance.CONTRAVARIANT
                      and all(any(is_subtype(left_argument, right_argument)
-                                 for right_argument in right_arguments_set)
-                             for left_argument in left_arguments_set))
+                                 for right_argument in right_arguments)
+                             for left_argument in left_arguments))
                     if right_variance is Variance.COVARIANT
                     else
                     (left_variance is not Variance.COVARIANT
                      and all(any(is_subtype(right_argument, left_argument)
-                                 for right_argument in right_arguments_set)
-                             for left_argument in left_arguments_set))
+                                 for right_argument in right_arguments)
+                             for left_argument in left_arguments))
                 )
             )
         else:
@@ -358,7 +353,11 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                     else all(map(is_subtype, right_arguments, left_arguments))
                 )
             )
-        elif left_origin is abc.ItemsView:
+        elif (
+                right_origin
+                if right_variance is Variance.CONTRAVARIANT
+                else left_origin
+        ) is abc.ItemsView:
             assert len(left_arguments) == 2, left
             assert len(right_arguments) == 1, right
             left_item_annotation: Annotation = t.Tuple[left_arguments]
