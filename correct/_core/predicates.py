@@ -336,12 +336,18 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
             assert len(left_arguments) == 1, left
             left_arguments += (int,)
         if (len(left_arguments) == len(right_arguments)
-                or (issubclass(left_origin, abc.Mapping)
-                    and len(left_arguments) == 2)
-                or left_origin is abc.AsyncGenerator
-                or left_origin is abc.Awaitable
-                or left_origin is abc.Coroutine
-                or left_origin is abc.Generator):
+                or (
+                        (issubclass(right_origin, abc.Mapping)
+                         and len(right_arguments) == 2)
+                        if right_variance is Variance.CONTRAVARIANT
+                        else (issubclass(left_origin, abc.Mapping)
+                              and len(left_arguments) == 2)
+                )
+                or (
+                        right_origin
+                        if right_variance is Variance.CONTRAVARIANT
+                        else left_origin
+                ) in (abc.AsyncGenerator, abc.Coroutine, abc.Generator)):
             return (
                 (all(map(is_subtype, left_arguments, right_arguments))
                  and all(map(is_subtype, right_arguments, left_arguments)))
