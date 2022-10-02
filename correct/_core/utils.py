@@ -38,6 +38,9 @@ def type_repr(type_: Annotation) -> str:
 
 def type_var_to_variance(value: t.TypeVar) -> Variance:
     assert isinstance(value, t.TypeVar), value
+    assert not (value.__contravariant__ and value.__covariant__), (
+        'type variables supposed to be non-bivariant'
+    )
     return (Variance.CONTRAVARIANT
             if value.__contravariant__
             else (Variance.COVARIANT
