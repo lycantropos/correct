@@ -327,12 +327,8 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
     else:
         assert _is_generic_alias(left), left
         assert _is_generic_alias(right), right
-        if left_origin is Counter:
-            assert len(left_arguments) == 1, left
-            left_arguments += (int,)
-        if right_origin is Counter:
-            assert len(right_arguments) == 1, right
-            right_arguments += (int,)
+        left_arguments = _complete_arguments(left_arguments, left_origin)
+        right_arguments = _complete_arguments(right_arguments, right_origin)
         if (len(left_arguments) == len(right_arguments)
                 or (
                         (issubclass(right_origin, abc.Mapping)
@@ -356,23 +352,6 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                     else all(map(is_subtype, right_arguments, left_arguments))
                 )
             )
-        elif (
-                right_origin
-                if right_variance is Variance.CONTRAVARIANT
-                else left_origin
-        ) is abc.ItemsView:
-            assert len(left_arguments) == 2, left
-            assert len(right_arguments) == 1, right
-            left_item_annotation: Annotation = t.Tuple[left_arguments]
-            right_argument, = right_arguments
-            return (
-                (is_subtype(left_item_annotation, right_argument)
-                 and is_subtype(right_argument, left_item_annotation))
-                if right_variance is Variance.INVARIANT
-                else (is_subtype(left_item_annotation, right_argument)
-                      if right_variance is Variance.COVARIANT
-                      else is_subtype(right_argument, left_item_annotation))
-            )
     raise TypeError('Unsupported types: '
                     f'"{annotation_repr(left)}", "{annotation_repr(right)}".')
 
@@ -380,3 +359,14 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
 def is_protocol(value: type,
                 _protocol_meta: t.Type = type(Protocol)) -> bool:
     return isinstance(value, _protocol_meta)
+
+
+def _complete_arguments(arguments: t.Tuple[Annotation, ...],
+                        origin: type) -> t.Tuple[Annotation, ...]:
+    if origin is Counter:
+        assert len(arguments) == 1, arguments
+        arguments += (int,)
+    elif origin is abc.ItemsView:
+        assert len(arguments) == 2, arguments
+        arguments = (t.Tuple[arguments],)
+    return arguments
