@@ -330,6 +330,9 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
         if left_origin is Counter:
             assert len(left_arguments) == 1, left
             left_arguments += (int,)
+        if right_origin is Counter:
+            assert len(right_arguments) == 1, right
+            right_arguments += (int,)
         if (len(left_arguments) == len(right_arguments)
                 or (
                         (issubclass(right_origin, abc.Mapping)
