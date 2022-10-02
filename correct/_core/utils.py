@@ -1,6 +1,7 @@
 import sys
 import typing as t
 from collections import abc
+from functools import singledispatch
 
 from .hints import (Annotation,
                     GenericAlias)
@@ -30,10 +31,36 @@ else:
             return None
 
 
-def type_repr(type_: Annotation) -> str:
-    return (f'{type_.__module__}.{type_.__qualname__}'
-            if isinstance(type_, type)
-            else repr(type_))
+@singledispatch
+def annotation_repr(value: Annotation) -> str:
+    return repr(value)
+
+
+@annotation_repr.register(type)
+def _(value: type) -> str:
+    return f'{value.__module__}.{value.__qualname__}'
+
+
+@annotation_repr.register(GenericAlias)
+def _(value: GenericAlias) -> str:
+    arguments = to_arguments(value)
+    return ((f'{value.__module__}.{value._name}'
+             f'[{", ".join(map(annotation_repr, arguments))}]')
+            if arguments
+            else f'{value.__module__}.{value._name}')
+
+
+@annotation_repr.register(t.TypeVar)
+def _(value: t.TypeVar) -> str:
+    arguments = [repr(value.__name__)]
+    arguments.extend(map(annotation_repr, value.__constraints__))
+    if value.__bound__ is not None:
+        arguments.append(f'bound={annotation_repr(value.__bound__)}')
+    if value.__contravariant__:
+        arguments.append('contravariant=True')
+    if value.__covariant__:
+        arguments.append('covariant=True')
+    return f'{type(value).__qualname__}({", ".join(arguments)})'
 
 
 def type_var_to_variance(value: t.TypeVar) -> Variance:

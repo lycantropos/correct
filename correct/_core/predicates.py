@@ -6,9 +6,9 @@ from collections import (Counter,
 
 from .hints import (Annotation,
                     GenericAlias)
-from .utils import (to_arguments,
+from .utils import (annotation_repr,
+                    to_arguments,
                     to_origin,
-                    type_repr,
                     type_var_to_variance,
                     unpack_type_var)
 from .variance import Variance
@@ -366,7 +366,7 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                       else is_subtype(right_argument, left_item_annotation))
             )
     raise TypeError('Unsupported types: '
-                    f'"{type_repr(left)}", "{type_repr(right)}".')
+                    f'"{annotation_repr(left)}", "{annotation_repr(right)}".')
 
 
 def is_protocol(value: type,
