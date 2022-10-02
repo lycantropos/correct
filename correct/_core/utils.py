@@ -4,6 +4,7 @@ from collections import abc
 
 from .hints import (Annotation,
                     GenericAlias)
+from .variance import Variance
 
 if sys.version_info >= (3, 8):
     to_arguments = t.get_args
@@ -35,11 +36,20 @@ def type_repr(type_: Annotation) -> str:
             else repr(type_))
 
 
-def unpack_type_var(annotation: t.TypeVar) -> Annotation:
-    assert isinstance(annotation, t.TypeVar), annotation
-    if annotation.__bound__:
-        return annotation.__bound__
-    elif annotation.__constraints__:
-        return t.Union[annotation.__constraints__]
+def type_var_to_variance(value: t.TypeVar) -> Variance:
+    assert isinstance(value, t.TypeVar), value
+    return (Variance.CONTRAVARIANT
+            if value.__contravariant__
+            else (Variance.COVARIANT
+                  if value.__covariant__
+                  else Variance.INVARIANT))
+
+
+def unpack_type_var(value: t.TypeVar) -> Annotation:
+    assert isinstance(value, t.TypeVar), value
+    if value.__bound__:
+        return value.__bound__
+    elif value.__constraints__:
+        return t.Union[value.__constraints__]
     else:
         return t.Any
