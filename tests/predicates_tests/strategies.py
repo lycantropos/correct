@@ -41,10 +41,16 @@ def nest_annotations(
             | strategies.builds(typing.Optional.__getitem__, base)
             | strategies.builds(typing.Union.__getitem__,
                                 (strategies.lists(base,
-                                                  min_size=1)
+                                                  min_size=1,
+                                                  max_size=5)
                                  .map(tuple)))
             | strategies.builds(typing.Tuple.__getitem__,
-                                strategies.lists(base).map(tuple)))
+                                strategies.tuples(base,
+                                                  strategies.just(Ellipsis)))
+            | strategies.builds(typing.Tuple.__getitem__,
+                                (strategies.lists(base,
+                                                  max_size=5)
+                                 .map(tuple))))
 
 
 if sys.version_info >= (3, 9):
@@ -61,11 +67,14 @@ else:
 special_generic_aliases_origins_values = {
     to_origin(alias) for alias in special_generic_aliases_values
 }
+
+
+def is_not_special_generic_alias_origin(value: type) -> bool:
+    return value not in special_generic_aliases_origins_values
+
+
 plain_static_annotations = strategies.recursive(
-        strategies.from_type(type).filter(
-                lambda type_:
-                type_ not in special_generic_aliases_origins_values
-        ),
+        strategies.from_type(type).filter(is_not_special_generic_alias_origin),
         nest_annotations
 )
 type_variables_names = strategies.text()
@@ -87,11 +96,13 @@ def to_variable_annotations(
 plain_annotations = strategies.recursive(
         plain_static_annotations
         | to_variable_annotations(plain_static_annotations),
-        nest_annotations
+        nest_annotations,
+        max_leaves=3
 )
 annotations = strategies.recursive(
         plain_annotations
         | special_generic_aliases
         | to_variable_annotations(special_generic_aliases),
-        nest_annotations
+        nest_annotations,
+        max_leaves=3
 )
