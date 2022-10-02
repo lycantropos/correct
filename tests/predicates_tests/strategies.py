@@ -58,17 +58,40 @@ else:
     ) -> int:
         return len(value.__parameters__)
 
-annotations = strategies.recursive(
-        strategies.from_type(type) | special_generic_aliases,
-        nest_annotations
-)
 special_generic_aliases_origins_values = {
     to_origin(alias) for alias in special_generic_aliases_values
 }
-plain_annotations = strategies.recursive(
+plain_static_annotations = strategies.recursive(
         strategies.from_type(type).filter(
                 lambda type_:
                 type_ not in special_generic_aliases_origins_values
         ),
+        nest_annotations
+)
+type_variables_names = strategies.text()
+
+
+def to_variable_annotations(
+        static_annotations: SearchStrategy[Annotation]
+) -> SearchStrategy[Annotation]:
+    return (strategies.builds(typing.TypeVar, type_variables_names,
+                              bound=static_annotations)
+            | strategies.builds(typing.TypeVar, type_variables_names,
+                                bound=static_annotations,
+                                contravariant=strategies.booleans())
+            | strategies.builds(typing.TypeVar, type_variables_names,
+                                bound=static_annotations,
+                                covariant=strategies.booleans()))
+
+
+plain_annotations = strategies.recursive(
+        plain_static_annotations
+        | to_variable_annotations(plain_static_annotations),
+        nest_annotations
+)
+annotations = strategies.recursive(
+        plain_annotations
+        | special_generic_aliases
+        | to_variable_annotations(special_generic_aliases),
         nest_annotations
 )
