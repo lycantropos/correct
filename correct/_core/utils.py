@@ -43,11 +43,19 @@ def _(value: type) -> str:
 
 @annotation_repr.register(GenericAlias)
 def _(value: GenericAlias) -> str:
+    origin = to_origin(value)
     arguments = to_arguments(value)
-    return ((f'{value.__module__}.{value._name}'
-             f'[{", ".join(map(annotation_repr, arguments))}]')
-            if arguments
-            else f'{value.__module__}.{value._name}')
+    assert value._name is not None or origin is t.Union, value
+    return (((f'{annotation_repr(t.Optional)}'
+              f'[{annotation_repr(arguments[arguments[0] is type(None)])}]')
+             if len(arguments) == 2 and type(None) in arguments
+             else (f'{annotation_repr(origin)}'
+                   f'[{", ".join(map(annotation_repr, arguments))}]'))
+            if origin is t.Union
+            else ((f'{value.__module__}.{value._name}'
+                   f'[{", ".join(map(annotation_repr, arguments))}]')
+                  if arguments
+                  else f'{value.__module__}.{value._name}'))
 
 
 @annotation_repr.register(t.TypeVar)
