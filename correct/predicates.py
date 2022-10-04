@@ -1,3 +1,3 @@
-from ._core.predicates import is_subtype as _is_subtype
+from ._core.predicates import is_subtype
 
-is_subtype = _is_subtype
+__all__ = [is_subtype.__name__]
