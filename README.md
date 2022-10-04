@@ -2,6 +2,7 @@ correct
 =======
 
 [![](https://github.com/lycantropos/correct/workflows/CI/badge.svg)](https://github.com/lycantropos/correct/actions/workflows/ci.yml "Github Actions")
+[![](https://readthedocs.org/projects/correct/badge/?version=latest)](https://correct.readthedocs.io/en/latest "Documentation")
 [![](https://codecov.io/gh/lycantropos/correct/branch/master/graph/badge.svg)](https://codecov.io/gh/lycantropos/correct "Codecov")
 [![](https://img.shields.io/github/license/lycantropos/correct.svg)](https://github.com/lycantropos/correct/blob/master/LICENSE "License")
 [![](https://badge.fury.io/py/correct.svg)](https://badge.fury.io/py/correct "PyPI")
