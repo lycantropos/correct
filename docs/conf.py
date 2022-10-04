@@ -56,4 +56,4 @@ from correct import hints
 html_theme = 'sphinx_rtd_theme'
 
 autodoc_member_order = 'bysource'
-autodoc_type_aliases = {'Annotation': f'{hints.__name__}.Annotation'}
+autodoc_type_aliases = {'_Annotation': f'{hints.__name__}.Annotation'}
