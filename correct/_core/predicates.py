@@ -20,16 +20,6 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Protocol
 
-
-def _generic_alias_to_variance(value: GenericAlias) -> t.Tuple[Variance, ...]:
-    return tuple(Variance.CONTRAVARIANT
-                 if parameter.__contravariant__
-                 else (Variance.COVARIANT
-                       if parameter.__covariant__
-                       else Variance.INVARIANT)
-                 for parameter in value.__parameters__)
-
-
 if sys.version_info >= (3, 9):
     def _is_generic_alias(value: t.Any) -> bool:
         return isinstance(value, GenericAlias)
