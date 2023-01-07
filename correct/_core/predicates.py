@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import types
 import typing as t
 from collections import (Counter,
                          abc)
@@ -12,7 +11,9 @@ import typing_extensions as te
 from .hints import (Annotation,
                     GenericAlias,
                     LegacySpecialization,
-                    Specialization)
+                    LegacyUnionType,
+                    Specialization,
+                    UnionType)
 from .utils import (annotation_repr,
                     to_arguments,
                     to_base,
@@ -387,13 +388,15 @@ def is_protocol(value: type,
     return isinstance(value, _protocol_meta)
 
 
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 9):
     def is_union(value: t.Any) -> bool:
-        return to_base(value) is t.Union
+        return isinstance(value, LegacyUnionType) and to_base(value) is t.Union
+elif sys.version_info < (3, 10):
+    def is_union(value: t.Any) -> bool:
+        return isinstance(value, LegacyUnionType)
 else:
     def is_union(value: t.Any) -> bool:
-        origin = to_base(value)
-        return origin is t.Union or origin is types.UnionType
+        return isinstance(value, (LegacyUnionType, UnionType))
 
 
 def _complete_arguments(arguments: t.Tuple[Annotation, ...],

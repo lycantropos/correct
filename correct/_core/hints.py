@@ -13,6 +13,11 @@ if sys.version_info < (3, 9):
     Specialization: Any = LegacySpecialization
 else:
     Specialization: Any = types.GenericAlias
+LegacyUnionType: Any = type(Union[float, int])
+if sys.version_info < (3, 10):
+    UnionType: Any = LegacyUnionType
+else:
+    UnionType: Any = types.UnionType
 SpecialForm = type(Any)
 SpecialGenericAlias = type(List)
 Annotation: Any = Union[
