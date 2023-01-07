@@ -132,12 +132,11 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
             ):
                 return False
             elif left_base is tuple:
-                if not left_arguments:
+                if len(left_arguments) == 0:
                     return (right_variance is Variance.COVARIANT
-                            or (len(right_arguments) == 1
-                                and right_arguments[0] == ()))
+                            or len(right_arguments) == 0)
                 elif right_base is tuple:
-                    if not right_arguments:
+                    if len(right_arguments) == 0:
                         return right_variance is Variance.CONTRAVARIANT
                     elif (len(left_arguments) == 2
                           and left_arguments[1] is Ellipsis):
@@ -235,7 +234,7 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                             )
                         )
             elif right_base is tuple:
-                if not right_arguments:
+                if len(right_arguments) == 0:
                     return right_variance is Variance.CONTRAVARIANT
                 elif (len(right_arguments) == 2
                       and right_arguments[1] is Ellipsis):
