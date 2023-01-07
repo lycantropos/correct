@@ -374,8 +374,9 @@ def is_generic_alias(value: t.Any) -> bool:
 if sys.version_info < (3, 9):
     def is_specialization(value: t.Any) -> bool:
         return (isinstance(value, LegacySpecialization)
-                and bool(to_arguments(value))
-                and not is_union(value))
+                and (to_base(value) is not t.Union
+                     if to_arguments(value)
+                     else to_base(value) is tuple))
 else:
     def is_specialization(value: t.Any) -> bool:
         return isinstance(value, (LegacySpecialization, Specialization))
