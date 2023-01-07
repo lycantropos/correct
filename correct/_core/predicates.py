@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import types
 import typing as t
 from collections import (Counter,
                          abc)
@@ -9,10 +10,12 @@ from inspect import isabstract
 import typing_extensions as te
 
 from .hints import (Annotation,
-                    GenericAlias)
+                    GenericAlias,
+                    LegacySpecialization,
+                    Specialization)
 from .utils import (annotation_repr,
                     to_arguments,
-                    to_origin,
+                    to_base,
                     type_var_to_variance,
                     unpack_type_var)
 from .variance import Variance
@@ -85,92 +88,13 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                       else (left_variance is not Variance.COVARIANT
                             and any(is_subtype(right_argument, left)
                                     for right_argument in right_arguments))))
-    left_is_generic_alias, right_is_generic_alias = (is_generic_alias(left),
-                                                     is_generic_alias(right))
-    if not left_is_generic_alias:
-        if left is t.Any:
-            return True
-        elif isinstance(left, type):
-            if is_protocol(left):
-                pass
-            elif not right_is_generic_alias:
-                if right is t.Any:
-                    return True
-                elif isinstance(right, type):
-                    if is_protocol(right):
-                        pass
-                    else:
-                        return (
-                            (left_variance is Variance.INVARIANT
-                             and issubclass(left, right)
-                             and issubclass(right, left))
-                            if right_variance is Variance.INVARIANT
-                            else ((left_variance is not Variance.CONTRAVARIANT
-                                   and issubclass(left, right))
-                                  if right_variance is Variance.COVARIANT
-                                  else (left_variance is not Variance.COVARIANT
-                                        and issubclass(right, left)))
-                        )
-            else:
-                right_origin = to_origin(right)
-                right_arguments = to_arguments(right)
-                if right_origin is t.Union:
-                    return (
-                        (left_variance is Variance.INVARIANT
-                         and any((is_subtype(left, right_argument)
-                                  and is_subtype(right_argument, left))
-                                 for right_argument in right_arguments))
-                        if right_variance is Variance.INVARIANT
-                        else (
-                            (left_variance is not Variance.CONTRAVARIANT
-                             and any(is_subtype(left, right_argument)
-                                     for right_argument in right_arguments))
-                            if right_variance is Variance.COVARIANT
-                            else (left_variance is not Variance.COVARIANT
-                                  and
-                                  any(is_subtype(right_argument, left)
-                                      for right_argument in right_arguments))
-                        )
-                    )
-                elif isinstance(right_origin, type):
-                    if is_protocol(right_origin):
-                        pass
-                    else:
-                        return (
-                            (left_variance is Variance.INVARIANT
-                             and issubclass(left, right_origin)
-                             and issubclass(right_origin, left))
-                            if right_variance is Variance.INVARIANT
-                            else ((left_variance is not Variance.CONTRAVARIANT
-                                   and issubclass(left, right_origin))
-                                  if right_variance is Variance.COVARIANT
-                                  else (left_variance is not Variance.COVARIANT
-                                        and issubclass(right_origin, left)))
-                        )
-    else:
-        left_origin, left_arguments = to_origin(left), to_arguments(left)
-        if not isinstance(left_origin, type):
+    elif is_specialization(left):
+        left_base, left_arguments = to_base(left), to_arguments(left)
+        if not isinstance(left_base, type):
             pass
-        elif not right_is_generic_alias:
-            if right is t.Any:
-                return True
-            elif isinstance(right, type):
-                if is_protocol(right):
-                    pass
-                else:
-                    return ((left_variance is Variance.INVARIANT
-                             and issubclass(left_origin, right)
-                             and issubclass(right, left_origin))
-                            if right_variance is Variance.INVARIANT
-                            else ((left_variance is not Variance.CONTRAVARIANT
-                                   and issubclass(left_origin, right))
-                                  if right_variance is Variance.COVARIANT
-                                  else (left_variance is not Variance.COVARIANT
-                                        and issubclass(right, left_origin))))
-        else:
-            right_origin, right_arguments = (to_origin(right),
-                                             to_arguments(right))
-            if not isinstance(right_origin, type):
+        elif is_specialization(right):
+            right_base, right_arguments = to_base(right), to_arguments(right)
+            if not isinstance(right_base, type):
                 pass
             elif not (
                     left_variance is Variance.INVARIANT
@@ -184,34 +108,34 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                 return False
             elif (
                     not (
-                            right_origin in left_origin.mro()
-                            and left_origin in right_origin.mro()
+                            right_base in left_base.mro()
+                            and left_base in right_base.mro()
                             if right_variance is Variance.INVARIANT
                             else (
-                                    right_origin in left_origin.mro()
+                                    right_base in left_base.mro()
                                     if right_variance is Variance.COVARIANT
-                                    else left_origin in right_origin.mro()
+                                    else left_base in right_base.mro()
                             )
                     )
-                    if isabstract(left_origin) and isabstract(right_origin)
+                    if isabstract(left_base) and isabstract(right_base)
                     else not (
-                            (issubclass(left_origin, right_origin)
-                             and issubclass(right_origin, left_origin))
+                            (issubclass(left_base, right_base)
+                             and issubclass(right_base, left_base))
                             if right_variance is Variance.INVARIANT
                             else (
-                                    issubclass(left_origin, right_origin)
+                                    issubclass(left_base, right_base)
                                     if right_variance is Variance.COVARIANT
-                                    else issubclass(right_origin, left_origin)
+                                    else issubclass(right_base, left_base)
                             )
                     )
             ):
                 return False
-            elif left_origin is tuple:
+            elif left_base is tuple:
                 if not left_arguments:
                     return (right_variance is Variance.COVARIANT
                             or (len(right_arguments) == 1
                                 and right_arguments[0] == ()))
-                elif right_origin is tuple:
+                elif right_base is tuple:
                     if not right_arguments:
                         return right_variance is Variance.CONTRAVARIANT
                     elif (len(left_arguments) == 2
@@ -309,7 +233,7 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                                          for left_argument in left_arguments)
                             )
                         )
-            elif right_origin is tuple:
+            elif right_base is tuple:
                 if not right_arguments:
                     return right_variance is Variance.CONTRAVARIANT
                 elif (len(right_arguments) == 2
@@ -344,24 +268,21 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                                                 left_arguments))))
                     )
             else:
-                assert is_generic_alias(left), left
-                assert is_generic_alias(right), right
-                left_arguments = _complete_arguments(left_arguments,
-                                                     left_origin)
+                left_arguments = _complete_arguments(left_arguments, left_base)
                 right_arguments = _complete_arguments(right_arguments,
-                                                      right_origin)
+                                                      right_base)
                 if (len(left_arguments) == len(right_arguments)
                         or (
-                                (issubclass(right_origin, abc.Mapping)
+                                (issubclass(right_base, abc.Mapping)
                                  and len(right_arguments) == 2)
                                 if right_variance is Variance.CONTRAVARIANT
-                                else (issubclass(left_origin, abc.Mapping)
+                                else (issubclass(left_base, abc.Mapping)
                                       and len(left_arguments) == 2)
                         )
                         or (
-                                right_origin
+                                right_base
                                 if right_variance is Variance.CONTRAVARIANT
-                                else left_origin
+                                else left_base
                         ) in (abc.AsyncGenerator, abc.Coroutine,
                               abc.Generator)):
                     return (
@@ -375,17 +296,89 @@ def is_subtype(left: Annotation, right: Annotation) -> bool:
                               else all(map(is_subtype, right_arguments,
                                            left_arguments)))
                     )
+        elif right is t.Any:
+            return True
+        else:
+            if is_generic_alias(right):
+                assert not to_arguments(right), right
+                right = to_base(right)
+            if isinstance(right, type):
+                if is_protocol(right):
+                    pass
+                else:
+                    return ((left_variance is Variance.INVARIANT
+                             and issubclass(left_base, right)
+                             and issubclass(right, left_base))
+                            if right_variance is Variance.INVARIANT
+                            else ((left_variance is not Variance.CONTRAVARIANT
+                                   and issubclass(left_base, right))
+                                  if right_variance is Variance.COVARIANT
+                                  else (left_variance is not Variance.COVARIANT
+                                        and issubclass(right, left_base))))
+    elif left is t.Any:
+        return True
+    else:
+        if is_generic_alias(left):
+            assert not to_arguments(left), left
+            left = to_base(left)
+        if isinstance(left, type):
+            if is_protocol(left):
+                pass
+            elif is_specialization(right):
+                right_base, right_arguments = (to_base(right),
+                                               to_arguments(right))
+                if isinstance(right_base, type):
+                    if is_protocol(right_base):
+                        pass
+                    else:
+                        return (
+                            (left_variance is Variance.INVARIANT
+                             and issubclass(left, right_base)
+                             and issubclass(right_base, left))
+                            if right_variance is Variance.INVARIANT
+                            else ((left_variance is not Variance.CONTRAVARIANT
+                                   and issubclass(left, right_base))
+                                  if right_variance is Variance.COVARIANT
+                                  else (left_variance is not Variance.COVARIANT
+                                        and issubclass(right_base, left)))
+                        )
+            elif right is t.Any:
+                return True
+            else:
+                if is_generic_alias(right):
+                    assert not to_arguments(right), right
+                    right = to_base(right)
+                if isinstance(right, type):
+                    if is_protocol(right):
+                        pass
+                    else:
+                        return (
+                            (left_variance is Variance.INVARIANT
+                             and issubclass(left, right)
+                             and issubclass(right, left))
+                            if right_variance is Variance.INVARIANT
+                            else ((left_variance is not Variance.CONTRAVARIANT
+                                   and issubclass(left, right))
+                                  if right_variance is Variance.COVARIANT
+                                  else (left_variance is not Variance.COVARIANT
+                                        and issubclass(right, left)))
+                        )
     raise TypeError('Unsupported types: '
                     f'"{annotation_repr(left)}", "{annotation_repr(right)}".')
 
 
-if sys.version_info >= (3, 9):
-    def is_generic_alias(value: t.Any) -> bool:
-        return isinstance(value, GenericAlias)
+def is_generic_alias(value: t.Any) -> bool:
+    return isinstance(value, GenericAlias)
+
+
+if sys.version_info < (3, 9):
+    def is_specialization(value: t.Any) -> bool:
+        return (isinstance(value, LegacySpecialization)
+                and bool(to_arguments(value))
+                and not is_union(value))
 else:
-    def is_generic_alias(value: t.Any) -> bool:
-        return (isinstance(value, GenericAlias)
-                and hasattr(value, '__parameters__'))
+    def is_specialization(value: t.Any) -> bool:
+        return isinstance(value, (LegacySpecialization, Specialization))
 
 
 def is_protocol(value: type,
@@ -393,8 +386,13 @@ def is_protocol(value: type,
     return isinstance(value, _protocol_meta)
 
 
-def is_union(value: t.Any) -> bool:
-    return to_origin(value) is t.Union
+if sys.version_info < (3, 10):
+    def is_union(value: t.Any) -> bool:
+        return to_base(value) is t.Union
+else:
+    def is_union(value: t.Any) -> bool:
+        origin = to_base(value)
+        return origin is t.Union or origin is types.UnionType
 
 
 def _complete_arguments(arguments: t.Tuple[Annotation, ...],

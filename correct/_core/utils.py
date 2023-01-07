@@ -5,7 +5,8 @@ from functools import singledispatch
 import typing_extensions as te
 
 from .hints import (Annotation,
-                    GenericAlias)
+                    LegacySpecialization,
+                    Specialization)
 from .variance import Variance
 
 if sys.version_info < (3, 11):
@@ -16,7 +17,7 @@ if sys.version_info < (3, 11):
 else:
     to_arguments = te.get_args
 
-to_origin = te.get_origin
+to_base = te.get_origin
 
 
 @singledispatch
@@ -29,9 +30,10 @@ def _(value: type) -> str:
     return f'{value.__module__}.{value.__qualname__}'
 
 
-@annotation_repr.register(GenericAlias)
-def _(value: GenericAlias) -> str:
-    origin = to_origin(value)
+@annotation_repr.register(LegacySpecialization)
+@annotation_repr.register(Specialization)
+def _(value: t.Union[LegacySpecialization, Specialization]) -> str:
+    origin = to_base(value)
     arguments = to_arguments(value)
     assert value._name is not None or origin is t.Union, value
     return (((f'{annotation_repr(t.Optional)}'
