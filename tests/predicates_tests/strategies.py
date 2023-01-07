@@ -6,7 +6,7 @@ from itertools import repeat
 from hypothesis import strategies
 from hypothesis.strategies import SearchStrategy
 
-from correct._core.utils import to_origin
+from correct._core.utils import to_base
 from correct.hints import Annotation
 from tests.utils import SpecialGenericAlias
 
@@ -65,7 +65,7 @@ else:
         return len(value.__parameters__)
 
 special_generic_aliases_origins_values = {
-    to_origin(alias) for alias in special_generic_aliases_values
+    to_base(alias) for alias in special_generic_aliases_values
 }
 
 
