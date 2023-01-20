@@ -1,6 +1,6 @@
-from correct._core.hints import SpecialGenericAlias as _SpecialGenericAlias
+from correct._core.hints import GenericAlias as _GenericAlias
 
-SpecialGenericAlias = _SpecialGenericAlias
+GenericAlias = _GenericAlias
 
 
 def implication(antecedent: bool, consequent: bool) -> bool:
