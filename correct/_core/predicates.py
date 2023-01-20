@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import enum
 import sys
+import types
 import typing as t
 from collections import (Counter,
                          abc)
 from functools import partial
-from inspect import (isabstract,
-                     isfunction)
+from inspect import isabstract
 
 import typing_extensions as te
 
@@ -102,16 +102,20 @@ def _classify_field(
         return FieldKind.CLASS_METHOD
     elif isinstance(value, staticmethod):
         return FieldKind.STATIC_METHOD
-    elif isfunction(value):
+    elif isinstance(value, (types.BuiltinFunctionType, types.BuiltinMethodType,
+                            types.ClassMethodDescriptorType,
+                            types.FunctionType, types.LambdaType,
+                            types.MethodDescriptorType,
+                            types.WrapperDescriptorType)):
         return FieldKind.INSTANCE_METHOD
     else:
         return _classify(value)
 
 
-def is_field_subtype(left_variance: Variance,
-                     right_variance: Variance,
-                     left: Annotation,
-                     right: Annotation) -> bool:
+def _is_field_subtype(left_variance: Variance,
+                      right_variance: Variance,
+                      left: Annotation,
+                      right: Annotation) -> bool:
     from . import signatures
 
     left_kind, right_kind = _classify_field(left), _classify_field(right)
@@ -254,11 +258,9 @@ def _is_subtype(left: Annotation,
                                          _protocol_to_fields(right))
             if not (left_fields.keys() <= right_fields.keys()):
                 return False
-            for field_name, left_field in left_fields.items():
-                right_field = right_fields[field_name]
-                if not is_field_subtype(left_variance, right_variance,
-                                        left_field, right_field):
-                    return False
+            return all(_is_field_subtype(left_variance, right_variance,
+                                         left_field, right_fields[field_name])
+                       for field_name, left_field in left_fields.items())
         else:
             return False
     elif right_kind is AnnotationKind.PROTOCOL:
@@ -269,16 +271,26 @@ def _is_subtype(left: Annotation,
             except AttributeError:
                 return False
             else:
-                if not is_field_subtype(left_variance, right_variance,
-                                        left_field, right_field):
+                if not _is_field_subtype(left_variance, right_variance,
+                                         left_field, right_field):
                     return False
+        return True
     elif left_kind is AnnotationKind.SPECIALIZATION:
         left_base, left_arguments = to_base(left), to_arguments(left)
-        if not isinstance(left_base, type):
+        if left_base is t.ClassVar:
+            if right_kind is not AnnotationKind.SPECIALIZATION:
+                return False
+            right_base, right_arguments = to_base(right), to_arguments(right)
+            return (right_base is t.ClassVar
+                    and is_subtype(left_variance, right_variance,
+                                   left_arguments[0], right_arguments[0]))
+        elif not isinstance(left_base, type):
             pass
         elif right_kind is AnnotationKind.SPECIALIZATION:
             right_base, right_arguments = to_base(right), to_arguments(right)
-            if not isinstance(right_base, type):
+            if right_base is t.ClassVar:
+                return False
+            elif not isinstance(right_base, type):
                 pass
             elif (
                     right_base not in left_base.mro()
@@ -374,7 +386,9 @@ def _is_subtype(left: Annotation,
         assert left_kind is AnnotationKind.TYPE, left_kind
         if right_kind is AnnotationKind.SPECIALIZATION:
             right_base, right_arguments = to_base(right), to_arguments(right)
-            if not isinstance(right_base, type):
+            if right_base is t.ClassVar:
+                return False
+            elif not isinstance(right_base, type):
                 pass
             elif right_base is callable_base:
                 if issubclass(left, right_base):
@@ -447,7 +461,10 @@ if sys.version_info < (3, 9):
                      else to_base(value) is tuple))
 else:
     def is_specialization(value: t.Any) -> bool:
-        return isinstance(value, (LegacySpecialization, Specialization))
+        return (isinstance(value, (LegacySpecialization, Specialization))
+                and (to_base(value) is not t.Union
+                     if to_arguments(value)
+                     else to_base(value) is tuple))
 
 
 def is_protocol(value: t.Any,
