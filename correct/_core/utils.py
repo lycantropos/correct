@@ -33,19 +33,23 @@ def _(value: type) -> str:
 @annotation_repr.register(LegacySpecialization)
 @annotation_repr.register(Specialization)
 def _(value: t.Union[LegacySpecialization, Specialization]) -> str:
-    origin = to_base(value)
+    base = to_base(value)
     arguments = to_arguments(value)
-    assert value._name is not None or origin is t.Union, value
     return (((f'{annotation_repr(t.Optional)}'
               f'[{annotation_repr(arguments[arguments[0] is type(None)])}]')
              if len(arguments) == 2 and type(None) in arguments
-             else (f'{annotation_repr(origin)}'
+             else (f'{annotation_repr(base)}'
                    f'[{", ".join(map(annotation_repr, arguments))}]'))
-            if origin is t.Union
-            else ((f'{value.__module__}.{value._name}'
-                   f'[{", ".join(map(annotation_repr, arguments))}]')
-                  if arguments
-                  else f'{value.__module__}.{value._name}'))
+            if base is t.Union
+            else (((f'{annotation_repr(base)}'
+                    f'[{", ".join(map(annotation_repr, arguments))}]')
+                   if arguments
+                   else f'{value.__module__}.{annotation_repr(base)}')
+                  if value._name is None
+                  else ((f'{value.__module__}.{value._name}'
+                         f'[{", ".join(map(annotation_repr, arguments))}]')
+                        if arguments
+                        else f'{value.__module__}.{value._name}')))
 
 
 @annotation_repr.register(t.TypeVar)
