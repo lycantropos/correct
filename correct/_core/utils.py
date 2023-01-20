@@ -18,6 +18,7 @@ else:
     to_arguments = te.get_args
 
 to_base = te.get_origin
+to_variants = to_arguments
 
 
 @singledispatch

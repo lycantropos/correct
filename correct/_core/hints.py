@@ -1,26 +1,27 @@
 import sys
 import types
-from typing import (Any,
-                    List,
-                    TypeVar,
-                    Union)
+import typing as t
 
-GenericAlias: Any = type(List)
-_T = TypeVar('_T')
-LegacySpecialization: Any = type(List[_T])
+GenericAlias: t.Any = type(t.List)
+_T = t.TypeVar('_T')
+LegacySpecialization: t.Any = type(t.List[_T])
 del _T
 if sys.version_info < (3, 9):
-    Specialization: Any = LegacySpecialization
+    Specialization: t.Any = LegacySpecialization
 else:
-    Specialization: Any = types.GenericAlias
-LegacyUnionType: Any = type(Union[float, int])
+    Specialization: t.Any = types.GenericAlias
+LegacyUnionType: t.Any = type(t.Union[float, int])
 if sys.version_info < (3, 10):
-    UnionType: Any = LegacyUnionType
+    UnionType: t.Any = LegacyUnionType
 else:
-    UnionType: Any = types.UnionType
-SpecialForm = type(Any)
-SpecialGenericAlias = type(List)
-Annotation: Any = Union[
+    UnionType: t.Any = types.UnionType
+SpecialForm = type(t.Any)
+Annotation: t.Any = t.Union[
     type, GenericAlias, LegacySpecialization, SpecialForm, Specialization,
-    TypeVar
+    t.TypeVar
 ]
+EllipsisType: t.Any
+if sys.version_info < (3, 10):
+    EllipsisType = type(Ellipsis)
+else:
+    EllipsisType = types.EllipsisType
