@@ -269,6 +269,25 @@ def is_subtype_of(
 def is_subtype_of_callable(
         left_signature: _Signature,
         right_annotations: _t.Sequence[_Annotation],
+        right_returns: _Annotation,
+        is_subtype: _t.Callable[[_Annotation, _Annotation], bool]
+) -> bool:
+    if isinstance(left_signature, _OverloadedSignature):
+        return any(is_subtype(signature.returns, right_returns)
+                   and _is_plain_signature_subtype(signature,
+                                                   right_annotations,
+                                                   is_subtype)
+                   for signature in left_signature.signatures)
+    else:
+        return (is_subtype(left_signature.returns, right_returns)
+                and _is_plain_signature_subtype(left_signature,
+                                                right_annotations,
+                                                is_subtype))
+
+
+def is_subtype_of_callable_annotations(
+        left_signature: _Signature,
+        right_annotations: _t.Sequence[_Annotation],
         is_subtype: _t.Callable[[_Annotation, _Annotation], bool]
 ) -> bool:
     if isinstance(left_signature, _OverloadedSignature):
@@ -278,6 +297,18 @@ def is_subtype_of_callable(
     else:
         return _is_plain_signature_subtype(left_signature, right_annotations,
                                            is_subtype)
+
+
+def is_subtype_of_callable_returns(
+        left_signature: _Signature,
+        right_returns: _t.Sequence[_Annotation],
+        is_subtype: _t.Callable[[_Annotation, _Annotation], bool]
+) -> bool:
+    if isinstance(left_signature, _OverloadedSignature):
+        return any(is_subtype(signature.returns, right_returns)
+                   for signature in left_signature.signatures)
+    else:
+        return is_subtype(left_signature.returns, right_returns)
 
 
 def _is_plain_signature_subtype(

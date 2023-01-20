@@ -153,12 +153,10 @@ def is_field_subtype(left_variance: Variance,
             return False
         left_signature = signatures.from_callable(left)
         right_annotations, right_returns = to_arguments(right)
-        return (is_subtype(left_variance, right_variance, right_returns,
-                           left_signature.returns)
-                and signatures.is_subtype_of_callable(
-                        left_signature, right_annotations,
-                        partial(is_subtype, left_variance, right_variance)
-                ))
+        return signatures.is_subtype_of_callable(
+                left_signature, right_annotations, right_returns,
+                partial(is_subtype, left_variance, right_variance)
+        )
     elif right_kind is FieldKind.PROPERTY:
         if left_kind is not FieldKind.PROPERTY:
             return False
@@ -191,8 +189,10 @@ def is_field_subtype(left_variance: Variance,
     elif left_kind is FieldKind.PROPERTY:
         if left.fset is None or left.fdel is None:
             return False
-        return is_subtype(left_variance, right_variance,
-                          signatures.from_callable(left.fget).returns, right)
+        return signatures.is_subtype_of_callable_returns(
+                signatures.from_callable(left.fget), right,
+                partial(is_subtype, left_variance, right_variance)
+        )
     else:
         assert left_kind not in FieldKind, left_kind
         assert right_kind not in FieldKind, right_kind
@@ -332,7 +332,7 @@ def _is_subtype(left: Annotation,
                         return True
                     elif isinstance(left_argument, type):
                         from . import signatures
-                        return signatures.is_subtype_of_callable(
+                        return signatures.is_subtype_of_callable_annotations(
                                 signatures.from_callable(left_argument),
                                 right_annotations,
                                 partial(is_subtype, left_variance,
@@ -388,7 +388,7 @@ def _is_subtype(left: Annotation,
                     return True
                 else:
                     from . import signatures
-                    return signatures.is_subtype_of_callable(
+                    return signatures.is_subtype_of_callable_annotations(
                             signatures.from_callable(left), right_annotations,
                             partial(is_subtype, left_variance, right_variance)
                     )
@@ -495,7 +495,7 @@ def _protocol_to_fields(
         )
 ) -> t.Dict[str, Annotation]:
     assert is_protocol(value), value
-    result = {}
+    result: t.Dict[str, Annotation] = {}
     for base in value.__mro__[:-1]:
         if base.__name__ in ('Protocol', 'Generic'):
             assert base in (te.Protocol, t.Generic), base
