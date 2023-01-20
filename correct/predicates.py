@@ -6,7 +6,9 @@ def is_subtype(left: _Annotation, right: _Annotation) -> bool:
     """
     Checks if annotation is a subtype of another.
 
-    >>> is_subtype(bool, int)  # types are invariant by default
+    >>> is_subtype(int, int)
+    True
+    >>> is_subtype(bool, int)  # types are considered invariant by default
     False
     >>> from typing import TypeVar
     >>> CovariantInt = TypeVar('CovariantInt', bound=int, covariant=True)
