@@ -1,3 +1,5 @@
+import typing as t
+
 from hypothesis import given
 
 from correct.hints import Annotation
@@ -11,6 +13,16 @@ def test_basic(first: Annotation, second: Annotation) -> None:
     result = is_subtype(first, second)
 
     assert isinstance(result, bool)
+
+
+@given(strategies.annotations)
+def test_minimal_element(annotation: Annotation) -> None:
+    assert is_subtype(t.Any, annotation)
+
+
+@given(strategies.annotations)
+def test_maximal_element(annotation: Annotation) -> None:
+    assert is_subtype(annotation, t.Any)
 
 
 @given(strategies.annotations)
