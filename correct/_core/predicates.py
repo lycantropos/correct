@@ -409,8 +409,8 @@ def _is_subtype(left: Annotation,
             elif right_base is type:
                 assert len(right_arguments) == 1, right
                 right_argument, = right_arguments
-                return is_subtype(left_variance, right_variance,
-                                  left, right_argument)
+                return is_subtype(left_variance, right_variance, left,
+                                  right_argument)
             else:
                 return issubclass(left, right_base)
         else:
