@@ -39,23 +39,23 @@ def is_subtype(default_left_variance: Variance,
                                  type_var_to_variance(right))
     else:
         right_variance = default_right_variance
-    return ((left_variance is Variance.INVARIANT
-             and _is_subtype(left, right, left_variance, right_variance)
-             and _is_subtype(right, left, left_variance, right_variance))
-            if right_variance is Variance.INVARIANT
-            else ((left_variance is not Variance.CONTRAVARIANT
-                   and _is_subtype(left, right, left_variance, right_variance))
-                  if right_variance is Variance.COVARIANT
-                  else (left_variance is not Variance.COVARIANT
-                        and _is_subtype(right, left, ~left_variance,
-                                        ~right_variance))))
+    return (left is t.Any or right is t.Any
+            or ((left_variance is Variance.INVARIANT
+                 and _is_subtype(left, right, left_variance, right_variance)
+                 and _is_subtype(right, left, left_variance, right_variance))
+                if right_variance is Variance.INVARIANT
+                else ((left_variance is not Variance.CONTRAVARIANT
+                       and _is_subtype(left, right, left_variance,
+                                       right_variance))
+                      if right_variance is Variance.COVARIANT
+                      else (left_variance is not Variance.COVARIANT
+                            and _is_subtype(right, left, ~left_variance,
+                                            ~right_variance)))))
 
 
 class AnnotationKind(enum.IntEnum):
-    ANY = enum.auto()
+    CONSTANT = enum.auto()
     GENERIC_ALIAS = enum.auto()
-    NO_RETURN = enum.auto()
-    NONE = enum.auto()
     PROTOCOL = enum.auto()
     SELF = enum.auto()
     SPECIALIZATION = enum.auto()
@@ -64,14 +64,10 @@ class AnnotationKind(enum.IntEnum):
 
 
 def _classify(value: Annotation) -> AnnotationKind:
-    if value is t.Any:
-        return AnnotationKind.ANY
-    elif value is te.Self:
+    if value is te.Self:
         return AnnotationKind.SELF
-    elif value is t.NoReturn:
-        return AnnotationKind.NO_RETURN
-    elif value is None:
-        return AnnotationKind.NONE
+    elif value is t.NoReturn or value is None:
+        return AnnotationKind.CONSTANT
     elif is_generic_alias(value):
         return AnnotationKind.GENERIC_ALIAS
     elif is_specialization(value):
@@ -236,21 +232,13 @@ def _is_subtype(left: Annotation,
         return any(is_subtype(left_variance, right_variance, left,
                               right_variant)
                    for right_variant in right_variants)
-    elif left_kind is AnnotationKind.ANY:
-        return True
-    elif right_kind is AnnotationKind.ANY:
-        return True
-    elif left_kind is AnnotationKind.NO_RETURN:
-        return right_kind is AnnotationKind.NO_RETURN
-    elif right_kind is AnnotationKind.NO_RETURN:
+    elif left_kind is AnnotationKind.CONSTANT:
+        return right is object or left is right
+    elif right_kind is AnnotationKind.CONSTANT:
         return False
     elif left_kind is AnnotationKind.SELF:
         return right_kind is AnnotationKind.SELF
     elif right_kind is AnnotationKind.SELF:
-        return False
-    elif left_kind is AnnotationKind.NONE:
-        return right_kind is AnnotationKind.NONE
-    elif right_kind is AnnotationKind.NONE:
         return False
     elif left_kind is AnnotationKind.PROTOCOL:
         if right_kind is AnnotationKind.PROTOCOL:
