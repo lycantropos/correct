@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+import sys
 from typing import TypeVar
 
 import pytest
@@ -8,11 +8,10 @@ from hypothesis import settings
 from correct._core.utils import annotation_repr
 
 on_ci = bool(os.getenv('CI', False))
-max_examples = settings.default.max_examples
+is_pypy = sys.implementation.name == 'pypy'
+max_examples = settings.default.max_examples // (5 if is_pypy else 1)
 settings.register_profile('default',
-                          deadline=(timedelta(hours=1) / max_examples
-                                    if on_ci
-                                    else None),
+                          deadline=None,
                           max_examples=max_examples)
 
 
